@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 import os
 from langchain_community.vectorstores.faiss import FAISS
@@ -12,6 +12,9 @@ from analytics import get_question_analytics
 from datetime import datetime, timedelta
 import json  # Import json module
 from gemini_service import extract_text_from_image
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from io import BytesIO
 
 app = Flask(__name__, static_folder='../public', static_url_path='')
 CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
@@ -302,6 +305,113 @@ def extract_text():
     except Exception as e:
         print(f"Error extracting text: {str(e)}")
         return jsonify({"error": "Failed to extract text"}), 500
+
+@app.route('/export-results', methods=['POST'])
+def export_results():
+    try:
+        data = request.json
+        if not data or 'results' not in data:
+            print("❌ No results data provided in request")
+            return jsonify({"error": "No results data provided"}), 400
+            
+        results = data['results']
+        if not results or not isinstance(results, list):
+            print("❌ Invalid results format")
+            return jsonify({"error": "Invalid results format"}), 400
+
+        print(f"📝 Processing {len(results)} results for export")
+        
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        
+        y_position = height - 50
+        
+        for idx, result in enumerate(results, 1):
+            # Validate required fields
+            required_fields = ['subject', 'tag', 'difficulty', 'image_path']
+            if not all(field in result for field in required_fields):
+                print(f"⚠️ Missing required fields in result {idx}")
+                continue
+                
+            print(f"Processing result {idx}: {result['subject']} - {result['tag']}")
+            
+            # Add heading for each result
+            c.setFont("Helvetica-Bold", 14)
+            c.drawString(50, y_position, f"Subject: {result['subject']} - {result['tag']}")
+            y_position -= 20
+            
+            # Add difficulty
+            c.setFont("Helvetica", 12)
+            c.drawString(50, y_position, f"Difficulty: {result['difficulty']}")
+            y_position -= 30
+            
+            # Add image and extract text
+            image_path = os.path.join('../public/uploads', result['image_path'])
+            if not os.path.exists(image_path):
+                print(f"⚠️ Image not found: {image_path}")
+                c.drawString(50, y_position, "Image not found")
+                y_position -= 20
+                continue
+                
+            try:
+                # Add image
+                img = Image.open(image_path)
+                print(f"✅ Image loaded: {image_path}")
+                aspect = img.width / img.height
+                img_width = 400
+                img_height = img_width / aspect
+                c.drawImage(image_path, 50, y_position - img_height, width=img_width, height=img_height)
+                y_position -= (img_height + 20)
+                
+                # Extract and add text
+                print(f"Extracting text from image {idx}")
+                extracted_text = extract_text_from_image(image_path)
+                if extracted_text:
+                    c.setFont("Helvetica-Bold", 12)
+                    c.drawString(50, y_position, "Question:")
+                    y_position -= 20
+                    
+                    c.setFont("Helvetica", 10)
+                    text = c.beginText(50, y_position)
+                    text.textLines(extracted_text)
+                    c.drawText(text)
+                    print(f"✅ Text extracted and added for result {idx}")
+                    y_position -= (len(extracted_text.split('\n')) * 15 + 20)
+                else:
+                    print(f"⚠️ No text extracted from image {idx}")
+                    c.drawString(50, y_position, "No text could be extracted")
+                    y_position -= 20
+                    
+            except Exception as e:
+                print(f"⚠️ Error processing image {idx}: {str(e)}")
+                c.drawString(50, y_position, f"Error processing image: {str(e)}")
+                y_position -= 20
+            
+            # Add separator line
+            c.setStrokeColorRGB(0.8, 0.8, 0.8)
+            c.line(50, y_position - 10, width - 50, y_position - 10)
+            y_position -= 30
+            
+            # Add page break if needed
+            if y_position < 100:
+                c.showPage()
+                y_position = height - 50
+                print(f"📄 Added new page after result {idx}")
+        
+        c.save()
+        buffer.seek(0)
+        print("✅ PDF generated successfully")
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name='search-results.pdf',
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        print(f"❌ Export error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # Run the Flask app
 if __name__ == '__main__':

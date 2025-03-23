@@ -157,8 +157,65 @@ export function SearchPage() {
           setIsExtracting(false);
       }
   };
-  // ...existing code...
-
+  const handleExportResults = async () => {
+    try {
+      // Show loading toast
+      const loadingToast = toast.loading("Preparing export...");
+  
+      // Validate search results
+      if (!searchResults || searchResults.length === 0) {
+        toast.error("No results to export");
+        return;
+      }
+  
+      // Map and clean results with validation
+      const cleanedResults = searchResults.map(result => {
+        if (!result.image_path) {
+          throw new Error(`Missing image path for result: ${result.tag}`);
+        }
+        return {
+          ...result,
+          image_path: result.image_path.replace("../public/uploads/", "")
+        };
+      });
+  
+      // Send to backend for processing and PDF generation
+      const response = await fetch("http://localhost:5000/export-results", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ results: cleanedResults }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Export failed: ' + response.statusText);
+      }
+  
+      // Handle successful response
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'search-results.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+  
+      // Show success message
+      toast.dismiss(loadingToast);
+      toast.success("Successfully exported results to PDF", {
+        description: `Exported ${cleanedResults.length} questions`
+      });
+  
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast.error("Failed to export results", {
+        description: error.message
+      });
+    }
+  };
   // Group results by tag
   const groupedByTag = searchResults.reduce((acc, result) => {
     acc[result.tag] = acc[result.tag] || [];
@@ -304,13 +361,25 @@ export function SearchPage() {
   return (
     <PageTransition>
       <div className="space-y-8">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-4xl font-bold tracking-tight">
-            Search Questions
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Search through your question bank using natural language
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">
+              Search Questions
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Search through your question bank using natural language
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportResults}
+              disabled={searchResults.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export Results
+            </Button>
+          </div>
         </div>
 
         <Card>
