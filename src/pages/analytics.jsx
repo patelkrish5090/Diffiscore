@@ -2,12 +2,82 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { PageTransition } from "@/components/ui/page-transition"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart, LineChart, DoughnutChart } from "@/components/ui/charts"
-import { Download, Calendar, Brain, Target, Clock, Activity } from "lucide-react"
-import { analyticsData } from "@/lib/mock-data"
+import { Download, Brain, Target, Clock, Activity } from "lucide-react"
+import { useState, useEffect } from "react"
 
 export function AnalyticsPage() {
+  const [analyticsData, setAnalyticsData] = useState(null)
+  const [subjectAnalytics, setSubjectAnalytics] = useState(null)
+  const [questionsData, setQuestionsData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      try {
+        const [analyticsRes, subjectRes, questionsRes] = await Promise.all([
+          fetch('http://localhost:5000/analytics'),
+          fetch('http://localhost:5000/subjectanalytics'),
+          fetch('http://localhost:5000/questions')
+        ])
+
+        const analyticsJson = await analyticsRes.json()
+        const subjectJson = await subjectRes.json()
+        const questionsJson = await questionsRes.json()
+
+        setAnalyticsData(analyticsJson)
+        setSubjectAnalytics(subjectJson)
+        setQuestionsData(questionsJson.questions)
+        setLoading(false)
+      } catch (error) {
+        console.error('Error fetching analytics:', error)
+        setLoading(false)
+      }
+    }
+
+    fetchAnalyticsData()
+  }, [])
+
+  if (loading || !analyticsData || !subjectAnalytics || !questionsData) {
+    return <div>Loading analytics data...</div>
+  }
+
+  // Line Chart: Process timestamps from /analytics recent_activity
+  const processingTrends = analyticsData.recent_activity.map(activity => ({
+    date: new Date(activity.timestamp).toLocaleDateString(),
+    value: 1 // Each entry represents one question
+  })).reduce((acc, curr) => {
+    const existing = acc.find(item => item.date === curr.date)
+    if (existing) {
+      existing.value += 1
+    } else {
+      acc.push(curr)
+    }
+    return acc
+  }, []).sort((a, b) => new Date(a.date) - new Date(b.date))
+
+  // Doughnut Chart: Subject distribution from /subjectanalytics
+  const subjectDistribution = Object.entries(subjectAnalytics).map(([subject, data]) => ({
+    name: subject,
+    value: data.total_questions
+  }))
+
+  // Bar Chart: Difficulty distribution from /subjectanalytics
+  const difficultyDistribution = Object.values(subjectAnalytics).reduce((acc, subject) => {
+    Object.entries(subject.difficulty_distribution).forEach(([level, count]) => {
+      acc[level] = (acc[level] || 0) + count
+    })
+    return acc
+  }, {})
+
+  const difficultyChartData = Object.entries(difficultyDistribution).map(([level, count]) => ({
+    name: level,
+    value: count
+  })).sort((a, b) => {
+    const order = ['Easy', 'Medium', 'Hard']
+    return order.indexOf(a.name) - order.indexOf(b.name)
+  })
+
   return (
     <PageTransition>
       <div className="space-y-8">
@@ -23,6 +93,7 @@ export function AnalyticsPage() {
             Export Report
           </Button>
         </div>
+
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -30,7 +101,7 @@ export function AnalyticsPage() {
               <Clock className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analyticsData.processingSpeed}s</div>
+              <div className="text-2xl font-bold">{analyticsData.system_statistics.processing_speed}s</div>
               <p className="text-xs text-muted-foreground">Average per question</p>
               <Progress value={75} className="mt-3" />
             </CardContent>
@@ -42,9 +113,9 @@ export function AnalyticsPage() {
               <Target className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analyticsData.accuracy}%</div>
+              <div className="text-2xl font-bold">{analyticsData.system_statistics.accuracy_rate}%</div>
               <p className="text-xs text-muted-foreground">Question analysis accuracy</p>
-              <Progress value={analyticsData.accuracy} className="mt-3" />
+              <Progress value={analyticsData.system_statistics.accuracy_rate} className="mt-3" />
             </CardContent>
           </Card>
 
@@ -54,9 +125,9 @@ export function AnalyticsPage() {
               <Activity className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analyticsData.processedToday}</div>
+              <div className="text-2xl font-bold">{analyticsData.today_activity}</div>
               <p className="text-xs text-muted-foreground">Questions processed</p>
-              <Progress value={45} className="mt-3" />
+              <Progress value={(analyticsData.today_activity / analyticsData.total_questions) * 100} className="mt-3" />
             </CardContent>
           </Card>
 
@@ -66,12 +137,13 @@ export function AnalyticsPage() {
               <Brain className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analyticsData.totalQuestions}</div>
+              <div className="text-2xl font-bold">{analyticsData.total_questions}</div>
               <p className="text-xs text-muted-foreground">In database</p>
               <Progress value={85} className="mt-3" />
             </CardContent>
           </Card>
         </div>
+
         <div className="grid gap-6 sm:grid-cols-2">
           <Card className="col-span-2">
             <CardHeader>
@@ -79,10 +151,16 @@ export function AnalyticsPage() {
               <CardDescription>Daily question processing volume</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-              <LineChart />
+              <LineChart 
+                data={processingTrends}
+                xKey="date"
+                yKey="value"
+                dataKey="value"
+              />
             </CardContent>
           </Card>
         </div>
+
         <div className="grid gap-6 sm:grid-cols-2">
           <Card>
             <CardHeader>
@@ -90,7 +168,11 @@ export function AnalyticsPage() {
               <CardDescription>Questions by subject area</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-              <DoughnutChart />
+              <DoughnutChart 
+                data={subjectDistribution}
+                labelKey="name"
+                valueKey="value"
+              />
             </CardContent>
           </Card>
 
@@ -100,7 +182,12 @@ export function AnalyticsPage() {
               <CardDescription>Questions by difficulty level</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-              <BarChart />
+              <BarChart 
+                data={difficultyChartData}
+                xKey="name"
+                yKey="value"
+                dataKey="value"
+              />
             </CardContent>
           </Card>
         </div>

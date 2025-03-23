@@ -1,0 +1,29 @@
+{
+    "Biology": {
+        "total_questions": 1,
+        "difficulty_distribution": {
+            "Easy": 0,
+            "Medium": 1,
+            "Hard": 0
+        },
+        "recent_activity": []
+    },
+    "Geography": {
+        "total_questions": 2,
+        "difficulty_distribution": {
+            "Easy": 1,
+            "Medium": 1,
+            "Hard": 0
+        },
+        "recent_activity": []
+    },
+    "Mathematics": {
+        "total_questions": 2,
+        "difficulty_distribution": {
+            "Easy": 1,
+            "Medium": 0,
+            "Hard": 1
+        },
+        "recent_activity": []
+    }
+}

@@ -1,0 +1,27 @@
+[
+    {
+        "subject": "Biology",
+        "difficulty": "Medium",
+        "image_path": "../public/uploads/q1.png"
+    },
+    {
+        "subject": "Geography",
+        "difficulty": "Easy",
+        "image_path": "../public/uploads/q2.png"
+    },
+    {
+        "subject": "Mathematics",
+        "difficulty": "Hard",
+        "image_path": "../public/uploads/q3.png"
+    },
+    {
+        "subject": "Mathematics",
+        "difficulty": "Easy",
+        "image_path": "../public/uploads/q4.png"
+    },
+    {
+        "subject": "Geography",
+        "difficulty": "Medium",
+        "image_path": "../public/uploads/q5.png"
+    }
+]

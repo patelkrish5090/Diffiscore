@@ -1,0 +1,32 @@
+{
+    "total_questions": 5,
+    "last_month_questions": 0,
+    "today_activity": 5,
+    "recent_uploads": 4,
+    "recent_activity": [
+        {
+            "event": "New question uploaded",
+            "timestamp": "2025-03-23T13:34:33.096365"
+        },
+        {
+            "event": "New question uploaded",
+            "timestamp": "2025-03-23T13:34:56.955559"
+        },
+        {
+            "event": "New question uploaded",
+            "timestamp": "2025-03-23T13:35:08.330980"
+        },
+        {
+            "event": "New question uploaded",
+            "timestamp": "2025-03-23T13:35:19.337130"
+        },
+        {
+            "event": "New question uploaded",
+            "timestamp": "2025-03-23T13:35:34.794034"
+        }
+    ],
+    "system_statistics": {
+        "processing_speed": 1.2,
+        "accuracy_rate": 98.0
+    }
+}

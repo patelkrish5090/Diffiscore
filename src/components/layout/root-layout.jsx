@@ -11,7 +11,7 @@ import {
   FileText, 
   BarChart2,
   Settings,
-  X 
+  X
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
