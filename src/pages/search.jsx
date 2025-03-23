@@ -377,7 +377,7 @@ export function SearchPage() {
               disabled={searchResults.length === 0}
             >
               <Download className="mr-2 h-4 w-4" />
-              Export Results
+              Download Question Paper
             </Button>
           </div>
         </div>
