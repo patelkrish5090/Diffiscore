@@ -3,4 +3,6 @@ flask_cors==5.0.1
 langchain_community==0.3.20
 langchain_huggingface==0.1.2
 Pillow==11.1.0
+protobuf==6.30.1
+python-dotenv==1.0.1
 Werkzeug==3.1.3
