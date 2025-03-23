@@ -89,14 +89,35 @@ export function SearchPage() {
     }
   };
 
-  const handleDownload = (imagePath) => {
-    const link = document.createElement("a");
-    link.href = `http://localhost:5000/uploads/${imagePath.replace(
-      "../public/uploads/",
-      ""
-    )}`;
-    link.download = imagePath.split("/").pop();
-    link.click();
+  const handleDownload = async (imagePath) => {
+    try {
+      // Clean the image path
+      const cleanPath = imagePath.replace("../public/uploads/", "");
+      const imageUrl = `http://localhost:5000/uploads/${cleanPath}`;
+      
+      // Fetch the image as blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // Create object URL
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = cleanPath.split("/").pop(); // Get filename from path
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Cleanup
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error("Failed to download image");
+    }
   };
 
   // Group results by tag

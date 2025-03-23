@@ -24,6 +24,9 @@ export function AnalyticsPage() {
         const analyticsJson = await analyticsRes.json()
         const subjectJson = await subjectRes.json()
         const questionsJson = await questionsRes.json()
+        console.log('analyticsJson:', analyticsJson)
+        console.log('subjectJson:', subjectJson)
+        console.log('questionsJson:', questionsJson)
 
         setAnalyticsData(analyticsJson)
         setSubjectAnalytics(subjectJson)
@@ -168,6 +171,7 @@ export function AnalyticsPage() {
               <CardDescription>Questions by subject area</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
+              {console.log('subjectDistribution:', subjectDistribution)}
               <DoughnutChart 
                 data={subjectDistribution}
                 labelKey="name"
