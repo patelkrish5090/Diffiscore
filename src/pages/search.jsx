@@ -14,6 +14,7 @@ import {
   Download,
   ZoomIn,
   Loader2,
+  Copy,
 } from "lucide-react";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +31,7 @@ export function SearchPage() {
   const [searchPrompt, setSearchPrompt] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const handleSearch = async () => {
     if (!searchPrompt.trim()) {
@@ -120,6 +122,43 @@ export function SearchPage() {
     }
   };
 
+  // ...existing code...
+  const handleExtractText = async (imagePath) => {
+      try {
+          setIsExtracting(true);
+          const cleanPath = imagePath.replace("../public/uploads/", "");
+          
+          const response = await fetch("http://localhost:5000/extract-text", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ image_path: cleanPath }),
+          });
+          
+          if (!response.ok) {
+              throw new Error('Failed to extract text');
+          }
+  
+          const result = await response.json();
+          
+          if (result.text) {
+              await navigator.clipboard.writeText(result.text);
+              toast.success("Text copied to clipboard", {
+                  description: result.text.substring(0, 100) + "..."
+              });
+          } else {
+              throw new Error(result.error || 'No text extracted');
+          }
+      } catch (error) {
+          console.error("Text extraction failed:", error);
+          toast.error(error.message || "Failed to extract text");
+      } finally {
+          setIsExtracting(false);
+      }
+  };
+  // ...existing code...
+
   // Group results by tag
   const groupedByTag = searchResults.reduce((acc, result) => {
     acc[result.tag] = acc[result.tag] || [];
@@ -190,6 +229,23 @@ export function SearchPage() {
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => handleExtractText(row.original.image_path)}
+                    disabled={isExtracting}
+                >
+                    {isExtracting ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Extracting...
+                        </>
+                    ) : (
+                        <>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Extract Text
+                        </>
+                    )}
                 </Button>
               </div>
             </div>

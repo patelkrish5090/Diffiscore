@@ -11,6 +11,7 @@ from analytics import get_analytics
 from analytics import get_question_analytics
 from datetime import datetime, timedelta
 import json  # Import json module
+from gemini_service import extract_text_from_image
 
 app = Flask(__name__, static_folder='../public', static_url_path='')
 CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
@@ -277,6 +278,30 @@ def get_subject_analytics():
     except Exception as e:
         print(f"⚠️ Error fetching question analytics: {str(e)}")
         return jsonify({"error": f"Failed to fetch question analytics: {str(e)}"}), 500
+
+@app.route('/extract-text', methods=['POST'])
+def extract_text():
+    try:
+        data = request.json
+        image_path = data.get('image_path')
+        
+        if not image_path:
+            return jsonify({"error": "No image path provided"}), 400
+
+        # Construct full path
+        full_path = os.path.join(app.static_folder, 'uploads', image_path)
+        
+        if not os.path.exists(full_path):
+            return jsonify({"error": "Image not found"}), 404
+
+        # Extract text using Gemini service
+        extracted_text = extract_text_from_image(full_path)
+        
+        return jsonify({"text": extracted_text}), 200
+
+    except Exception as e:
+        print(f"Error extracting text: {str(e)}")
+        return jsonify({"error": "Failed to extract text"}), 500
 
 # Run the Flask app
 if __name__ == '__main__':
