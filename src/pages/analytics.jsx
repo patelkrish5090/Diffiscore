@@ -41,6 +41,35 @@ export function AnalyticsPage() {
     fetchAnalyticsData()
   }, [])
 
+  const handleExportReport = () => {
+    // Prepare the data to be exported
+    const reportData = {
+      analytics: analyticsData,
+      subjectAnalytics: subjectAnalytics,
+      questions: questionsData,
+    };
+
+    // Convert the data to a JSON string
+    const jsonString = JSON.stringify(reportData, null, 2);
+
+    // Create a Blob with the JSON data
+    const blob = new Blob([jsonString], { type: 'application/json' });
+
+    // Create a link element
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'analytics_report.json'; // Name of the file to be downloaded
+
+    // Append the link to the body (required for Firefox)
+    document.body.appendChild(link);
+
+    // Trigger the download
+    link.click();
+
+    // Remove the link from the document
+    document.body.removeChild(link);
+  };
+
   if (loading || !analyticsData || !subjectAnalytics || !questionsData) {
     return <div>Loading analytics data...</div>
   }
@@ -91,7 +120,7 @@ export function AnalyticsPage() {
               Detailed insights and statistics about your question bank
             </p>
           </div>
-          <Button variant="outline" className="w-full sm:w-auto">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={handleExportReport}>
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </Button>
